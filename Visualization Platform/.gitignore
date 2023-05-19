@@ -1,8 +1,0 @@
-.vscode/
-*.mp4
-__pycache__/
-log/*
-uploadvideo/*
-preprocessing/Data/TrackNetModel/*
-preprocessing/Code/TrackNet/*
-*.json
