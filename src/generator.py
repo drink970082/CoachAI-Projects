@@ -1,9 +1,7 @@
 from badmintoncleaner import prepare_dataset
 import ast
 import sys
-import pandas as pd
 import torch
-import torch.nn as nn
 from tqdm import tqdm
 
 

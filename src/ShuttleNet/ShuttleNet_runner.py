@@ -93,7 +93,7 @@ def shotGen_trainer(data_loader, encoder, decoder, criterion, encoder_optimizer,
 
             total_instance += len(target_shot)
 
-            loss_shot = criterion['entropy'](output_shot_logits, target_shot)
+            loss_shot = criterion['entropy'](output_shot_logits, target_shot.type(torch.LongTensor))
             loss_area = Gaussian2D_loss(output_xy, gold_xy)
 
             loss = loss_shot + loss_area
@@ -160,7 +160,7 @@ def shotgen_generator(given_seq, encoder, decoder, config, samples, device):
                 sy = torch.exp(output_xy[:, -1, 3]) #sy
                 corr = torch.tanh(output_xy[:, -1, 4]) #corr
                 
-                cov = torch.zeros(2, 2).cuda(output_xy.device)
+                cov = torch.zeros(2, 2).to(output_xy.device)
                 cov[0, 0]= sx * sx
                 cov[0, 1]= corr * sx * sy
                 cov[1, 0]= corr * sx * sy
