@@ -65,7 +65,7 @@ def shotGen_trainer(data_loader, encoder, decoder, criterion, encoder_optimizer,
             encoder_optimizer.zero_grad()
             decoder_optimizer.zero_grad()
 
-            input_shot = batch_input_shot[:, :encode_length]
+            input_shot = batch_input_shot[:, :h]encode_lengt
             input_x = batch_input_x[:, :encode_length]
             input_y = batch_input_y[:, :encode_length]
             input_player = batch_input_player[:, :encode_length]
