@@ -45,7 +45,7 @@ def alternatemerge(seq_A, seq_B, merge_len, player):
     else:
         raise NotImplementedError
 
-    return merged_seq.cuda(seq_A.device)
+    return merged_seq.to(seq_A.device)
 
 
 class ShotGenDecoder(nn.Module):

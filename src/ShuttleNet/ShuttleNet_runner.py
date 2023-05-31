@@ -57,7 +57,8 @@ def shotGen_trainer(data_loader, encoder, decoder, criterion, encoder_optimizer,
         total_loss, total_shot_loss, total_area_loss = 0, 0, 0
         total_instance = 0
 
-        for loader_idx, item in enumerate(data_loader):
+
+        for  loader_idx, item in enumerate(data_loader):
             batch_input_shot, batch_input_x, batch_input_y, batch_input_player = item[0].to(device), item[1].to(device), item[2].to(device), item[3].to(device)
             batch_target_shot, batch_target_x, batch_target_y, batch_target_player = item[4].to(device), item[5].to(device), item[6].to(device), item[7].to(device)
             seq_len, seq_sets = item[8].to(device), item[9].to(device)
@@ -75,6 +76,7 @@ def shotGen_trainer(data_loader, encoder, decoder, criterion, encoder_optimizer,
             input_x = batch_input_x[:, encode_length:]
             input_y = batch_input_y[:, encode_length:]
             input_player = batch_input_player[:, encode_length:]
+            
             target_shot = batch_target_shot[:, encode_length:]
             target_x = batch_target_x[:, encode_length:]
             target_y = batch_target_y[:, encode_length:]
@@ -93,7 +95,7 @@ def shotGen_trainer(data_loader, encoder, decoder, criterion, encoder_optimizer,
 
             total_instance += len(target_shot)
 
-            loss_shot = criterion['entropy'](output_shot_logits, target_shot)
+            loss_shot = criterion['entropy'](output_shot_logits, target_shot.type(torch.LongTensor))
             loss_area = Gaussian2D_loss(output_xy, gold_xy)
 
             loss = loss_shot + loss_area

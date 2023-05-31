@@ -18,8 +18,8 @@ def get_argument():
                         help="path to save model")
     opt.add_argument("--seed_value",
                         type=int,
-                        default=42,
-                        help="seed value")
+                        default=42,  
+                        help="seed value")   #可改
     opt.add_argument("--max_ball_round",
                         type=int,
                         default=70,
@@ -35,11 +35,11 @@ def get_argument():
     opt.add_argument("--lr",
                         type=int,
                         default=1e-4,
-                        help="learning rate")
+                        help="learning rate")  #可改
     opt.add_argument("--epochs",
                         type=int,
                         default=150,
-                        help="epochs")
+                        help="epochs")  #可改
     opt.add_argument("--n_layers",
                         type=int,
                         default=1,
@@ -99,7 +99,6 @@ if __name__ == "__main__":
 
     # Clean data and Prepare dataset
     config, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches = prepare_dataset(config)
-
     device = torch.device(f"cuda:{config['gpu_num']}" if torch.cuda.is_available() else "cpu")
     print("Model path: {}".format(config['output_folder_name']))
     if not os.path.exists(config['output_folder_name']):
