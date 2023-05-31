@@ -187,25 +187,34 @@ class ShotGenEncoder(nn.Module):
         
         embedded_area = F.relu(self.area_embedding(area))
         embedded_shot = self.shot_embedding(input_shot)
+        # embedded_time =
+        # ...
         embedded_player = self.player_embedding(input_player)
 
         h_a = embedded_area + embedded_player
         h_s = embedded_shot + embedded_player
+        # h_t = embedded_time + embedded_player
 
         # split player
         h_a_A = h_a[:, ::2]
         h_a_B = h_a[:, 1::2]
         h_s_A = h_s[:, ::2]
         h_s_B = h_s[:, 1::2]
+        # h_t_A = h_t[:, ::2]
+        # h_t_B = h_t[:, 1::2]
 
         # local
         encode_output_area = self.dropout(self.position_embedding(h_a, mode='encode'))
         encode_output_shot = self.dropout(self.position_embedding(h_s, mode='encode'))
+        # encode_output_time = self.dropout(self.position_embedding(h_t, mode='encode'))
+
         # global
         encode_output_area_A = self.dropout(self.position_embedding(h_a_A, mode='encode'))
         encode_output_area_B = self.dropout(self.position_embedding(h_a_B, mode='encode'))
         encode_output_shot_A = self.dropout(self.position_embedding(h_s_A, mode='encode'))
         encode_output_shot_B = self.dropout(self.position_embedding(h_s_B, mode='encode'))
+        # encode_output_time_A = self.dropout(self.position_embedding(h_t_B, mode='encode'))
+        # encode_output_time_B = self.dropout(self.position_embedding(h_t_B, mode='encode'))
 
         encode_global_A, enc_slf_attn_A = self.global_layer(encode_output_area_A, encode_output_shot_A, slf_attn_mask=src_mask)
         encode_global_B, enc_slf_attn_B = self.global_layer(encode_output_area_B, encode_output_shot_B, slf_attn_mask=src_mask)

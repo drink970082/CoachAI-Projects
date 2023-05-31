@@ -66,7 +66,7 @@ def shotGen_trainer(data_loader, encoder, decoder, criterion, encoder_optimizer,
             encoder_optimizer.zero_grad()
             decoder_optimizer.zero_grad()
 
-            input_shot = batch_input_shot[:, :encode_length]
+            input_shot = batch_input_shot[:, :h]encode_lengt
             input_x = batch_input_x[:, :encode_length]
             input_y = batch_input_y[:, :encode_length]
             input_player = batch_input_player[:, :encode_length]
@@ -162,7 +162,7 @@ def shotgen_generator(given_seq, encoder, decoder, config, samples, device):
                 sy = torch.exp(output_xy[:, -1, 3]) #sy
                 corr = torch.tanh(output_xy[:, -1, 4]) #corr
                 
-                cov = torch.zeros(2, 2).cuda(output_xy.device)
+                cov = torch.zeros(2, 2).to(output_xy.device)
                 cov[0, 0]= sx * sx
                 cov[0, 1]= corr * sx * sy
                 cov[1, 0]= corr * sx * sy

@@ -92,7 +92,7 @@ def set_seed(seed_value):
 
 if __name__ == "__main__":
     config = get_argument()
-    config['data_folder'] = '../data/'
+    config['data_folder'] = '../dataset/'
     config['model_folder'] = './model/'
     model_type = config['model_type']
     set_seed(config['seed_value'])

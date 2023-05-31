@@ -12,7 +12,9 @@ class EncoderLayer(nn.Module):
         self.pos_ffn = PositionwiseFeedForward(d_model, d_inner, dropout=dropout)
 
     def forward(self, encode_area, encode_shot, slf_attn_mask=None):
+        # add feature in forward args,
         encode_output, enc_slf_attn, enc_disentangled_weight = self.disentangled_attention(encode_area, encode_area, encode_area, encode_shot, encode_shot, encode_shot, mask=slf_attn_mask)
+        # not implement yet
         encode_output = self.pos_ffn(encode_output)
         return encode_output, enc_slf_attn
 
