@@ -34,7 +34,6 @@ def get_argument():
                      default=32,
                      help="batch size")
     opt.add_argument("--lr",
-<<<<<<< HEAD
                         type=int,
                         default=1e-4,
                         help="learning rate")  #可改
@@ -42,15 +41,6 @@ def get_argument():
                         type=int,
                         default=150,
                         help="epochs")  #可改
-=======
-                     type=int,
-                     default=1e-4,
-                     help="learning rate")
-    opt.add_argument("--epochs",
-                     type=int,
-                     default=150,
-                     help="epochs")
->>>>>>> 43c60f4be880ab566d6dd8ee678b930277fa0801
     opt.add_argument("--n_layers",
                      type=int,
                      default=1,
@@ -109,13 +99,7 @@ if __name__ == "__main__":
     set_seed(config['seed_value'])
 
     # Clean data and Prepare dataset
-<<<<<<< HEAD
     config, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches = prepare_dataset(config)
-=======
-    config, feature_name, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches = prepare_dataset(
-        config)
-
->>>>>>> 43c60f4be880ab566d6dd8ee678b930277fa0801
     device = torch.device(f"cuda:{config['gpu_num']}" if torch.cuda.is_available() else "cpu")
     print("Model path: {}".format(config['output_folder_name']))
     if not os.path.exists(config['output_folder_name']):
