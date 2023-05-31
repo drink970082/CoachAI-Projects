@@ -180,7 +180,7 @@ class ShotGenEncoder(nn.Module):
         self.global_layer = EncoderLayer(d_model, d_inner, n_heads, d_k, d_v, dropout=dropout)
         self.local_layer = EncoderLayer(d_model, d_inner, n_heads, d_k, d_v, dropout=dropout)
 
-    def forward(self, input_shot, input_x, input_y, input_player, src_mask=None, return_attns=False):
+    def forward(self, input_dict, input_shot, input_x, input_y, input_player, src_mask=None, return_attns=False):
         enc_slf_attn_list = []
 
         area = torch.cat((input_x.unsqueeze(-1), input_y.unsqueeze(-1)), dim=-1).float()
