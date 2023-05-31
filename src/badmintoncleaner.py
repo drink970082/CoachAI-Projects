@@ -153,7 +153,6 @@ class BadmintonDataset(Dataset):
                 pad_time,pad_roundscore_A,pad_roundscore_B,pad_aroundhead,
                 pad_backhand, pad_landing_height,pad_landing_area,
                 pad_player_location_area, pad_player_location_x,
-                pad_player_location_y, pad_opponent_location_area,
                 pad_opponent_location_x, pad_opponent_location_y,
                 pad_output_shot, pad_output_x, pad_output_y, pad_output_player,
                 rally_len, sets[0])

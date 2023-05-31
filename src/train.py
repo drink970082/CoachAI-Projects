@@ -9,30 +9,32 @@ import torch.nn as nn
 def get_argument():
     opt = argparse.ArgumentParser()
     opt.add_argument("--model_type",
-                        type=str,
-                        choices=['LSTM', 'CFLSTM', 'Transformer', 'DMA_Nets', 'ShuttleNet', 'ours_rm_taa', 'ours_p2r', 'ours_r2p', 'DNRI'],
-                        required=True,
-                        help="model type")
+                     type=str,
+                     choices=['LSTM', 'CFLSTM', 'Transformer', 'DMA_Nets', 'ShuttleNet', 'ours_rm_taa', 'ours_p2r',
+                              'ours_r2p', 'DNRI'],
+                     required=True,
+                     help="model type")
     opt.add_argument("--output_folder_name",
-                        type=str,
-                        help="path to save model")
+                     type=str,
+                     help="path to save model")
     opt.add_argument("--seed_value",
                         type=int,
                         default=42,  
                         help="seed value")   #可改
     opt.add_argument("--max_ball_round",
-                        type=int,
-                        default=70,
-                        help="max of ball round (hard code in this sample code)")
+                     type=int,
+                     default=70,
+                     help="max of ball round (hard code in this sample code)")
     opt.add_argument("--encode_length",
-                        type=int,
-                        default=4,
-                        help="given encode length")
+                     type=int,
+                     default=4,
+                     help="given encode length")
     opt.add_argument("--batch_size",
-                        type=int,
-                        default=32,
-                        help="batch size")
+                     type=int,
+                     default=32,
+                     help="batch size")
     opt.add_argument("--lr",
+<<<<<<< HEAD
                         type=int,
                         default=1e-4,
                         help="learning rate")  #可改
@@ -40,46 +42,55 @@ def get_argument():
                         type=int,
                         default=150,
                         help="epochs")  #可改
+=======
+                     type=int,
+                     default=1e-4,
+                     help="learning rate")
+    opt.add_argument("--epochs",
+                     type=int,
+                     default=150,
+                     help="epochs")
+>>>>>>> 43c60f4be880ab566d6dd8ee678b930277fa0801
     opt.add_argument("--n_layers",
-                        type=int,
-                        default=1,
-                        help="number of layers")
+                     type=int,
+                     default=1,
+                     help="number of layers")
     opt.add_argument("--shot_dim",
-                        type=int,
-                        default=32,
-                        help="dimension of shot")
+                     type=int,
+                     default=32,
+                     help="dimension of shot")
     opt.add_argument("--area_num",
-                        type=int,
-                        default=5,
-                        help="mux, muy, sx, sy, corr")
+                     type=int,
+                     default=5,
+                     help="mux, muy, sx, sy, corr")
     opt.add_argument("--area_dim",
-                        type=int,
-                        default=32,
-                        help="dimension of area")
+                     type=int,
+                     default=32,
+                     help="dimension of area")
     opt.add_argument("--player_dim",
-                        type=int,
-                        default=32,
-                        help="dimension of player")
+                     type=int,
+                     default=32,
+                     help="dimension of player")
     opt.add_argument("--encode_dim",
-                        type=int,
-                        default=32,
-                        help="dimension of hidden")
+                     type=int,
+                     default=32,
+                     help="dimension of hidden")
     opt.add_argument("--num_directions",
-                        type=int,
-                        default=1,
-                        help="number of LSTM directions")
+                     type=int,
+                     default=1,
+                     help="number of LSTM directions")
     opt.add_argument("--K",
-                        type=int,
-                        default=5,
-                        help="Number of fold for dataset")
+                     type=int,
+                     default=5,
+                     help="Number of fold for dataset")
     opt.add_argument("--sample",
-                        type=int,
-                        default=10,
-                        help="Number of samples for evaluation")
+                     type=int,
+                     default=10,
+                     help="Number of samples for evaluation")
     opt.add_argument("--gpu_num",
-                        type=int,
-                        default=0,
-                        help="Selected GPU number")
+                     type=int,
+                     default=0,
+                     help="Selected GPU number")
     config = vars(opt.parse_args())
     return config
 
@@ -87,7 +98,7 @@ def get_argument():
 def set_seed(seed_value):
     torch.manual_seed(seed_value)
     torch.cuda.manual_seed(seed_value)
-    torch.cuda.manual_seed_all(seed_value)    # gpu vars
+    torch.cuda.manual_seed_all(seed_value)  # gpu vars
 
 
 if __name__ == "__main__":
@@ -98,7 +109,13 @@ if __name__ == "__main__":
     set_seed(config['seed_value'])
 
     # Clean data and Prepare dataset
+<<<<<<< HEAD
     config, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches = prepare_dataset(config)
+=======
+    config, feature_name, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches = prepare_dataset(
+        config)
+
+>>>>>>> 43c60f4be880ab566d6dd8ee678b930277fa0801
     device = torch.device(f"cuda:{config['gpu_num']}" if torch.cuda.is_available() else "cpu")
     print("Model path: {}".format(config['output_folder_name']))
     if not os.path.exists(config['output_folder_name']):
@@ -107,6 +124,7 @@ if __name__ == "__main__":
     # read model
     from ShuttleNet.ShuttleNet import ShotGenEncoder, ShotGenPredictor
     from ShuttleNet.ShuttleNet_runner import shotGen_trainer
+
     encoder = ShotGenEncoder(config)
     decoder = ShotGenPredictor(config)
     encoder.area_embedding.weight = decoder.shotgen_decoder.area_embedding.weight
@@ -125,6 +143,8 @@ if __name__ == "__main__":
     for key, value in criterion.items():
         criterion[key].to(device)
 
-    record_train_loss = shotGen_trainer(data_loader=train_dataloader, encoder=encoder, decoder=decoder, criterion=criterion, encoder_optimizer=encoder_optimizer, decoder_optimizer=decoder_optimizer, config=config, device=device)
+    record_train_loss = shotGen_trainer(data_loader=train_dataloader, feature_name=feature_name, encoder=encoder, decoder=decoder,
+                                        criterion=criterion, encoder_optimizer=encoder_optimizer,
+                                        decoder_optimizer=decoder_optimizer, config=config, device=device)
 
     draw_loss(record_train_loss, config)
