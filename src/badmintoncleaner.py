@@ -150,12 +150,12 @@ class BadmintonDataset(Dataset):
         
         #print(type(pad_time[0]),type(pad_input_shot[0]))
         return (pad_input_shot, pad_input_x, pad_input_y, pad_input_player,
-                pad_output_shot, pad_output_x, pad_output_y, pad_output_player,
                 pad_time,pad_roundscore_A,pad_roundscore_B,pad_aroundhead,
                 pad_backhand, pad_landing_height,pad_landing_area,
                 pad_player_location_area, pad_player_location_x,
                 pad_player_location_y, pad_opponent_location_area,
                 pad_opponent_location_x, pad_opponent_location_y,
+                pad_output_shot, pad_output_x, pad_output_y, pad_output_player,
                 rally_len, sets[0])
 """
         
