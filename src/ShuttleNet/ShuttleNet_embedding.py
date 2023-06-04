@@ -42,3 +42,17 @@ class PlayerEmbedding(nn.Embedding):
 class ShotEmbedding(nn.Embedding):
     def __init__(self, shot_num, embed_dim):
         super(ShotEmbedding, self).__init__(shot_num, embed_dim, padding_idx=PAD)
+
+
+class ShotEmbedding(nn.Embedding):
+    def __init__(self, num, embed_dim):
+        super(Embedding, self).__init__(num, embed_dim, padding_idx=PAD)
+
+class PlayerEmbedding(nn.Embedding):
+    def __init__(self, num, embed_dim):
+        super(Embedding, self).__init__(num, embed_dim, padding_idx=PAD)
+
+
+class Embedding(nn.Embedding):
+    def __init__(self, num, embed_dim):
+        super(Embedding, self).__init__(num, embed_dim, padding_idx=PAD)
