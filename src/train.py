@@ -111,7 +111,7 @@ if __name__ == "__main__":
     from ShuttleNet.ShuttleNet import ShotGenEncoder, ShotGenPredictor
     from ShuttleNet.ShuttleNet_runner import shotGen_trainer
 
-    encoder = ShotGenEncoder(config)
+    encoder = ShotGenEncoder(config, feature_name)
     decoder = ShotGenPredictor(config)
     encoder.area_embedding.weight = decoder.shotgen_decoder.area_embedding.weight
     encoder.shot_embedding.weight = decoder.shotgen_decoder.shot_embedding.weight
