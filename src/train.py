@@ -111,10 +111,10 @@ if __name__ == "__main__":
 
     encoder = ShotGenEncoder(config, feature_name)
     decoder = ShotGenPredictor(config, feature_name)
-    encoder.area_embedding.weight = decoder.shotgen_decoder.area_embedding.weight
-    encoder.shot_embedding.weight = decoder.shotgen_decoder.shot_embedding.weight
-    encoder.player_embedding.weight = decoder.shotgen_decoder.player_embedding.weight
-    decoder.player_embedding.weight = decoder.shotgen_decoder.player_embedding.weight
+    encoder.feature_embedding['area'].weight = decoder.shotgen_decoder.feature_embedding['area'].weight
+    encoder.feature_embedding['type'].weight = decoder.shotgen_decoder.feature_embedding['type'].weight
+    encoder.feature_embedding['player'].weight = decoder.shotgen_decoder.feature_embedding['player'] .weight
+    decoder.player_embedding.weight = decoder.shotgen_decoder.feature_embedding['player'] .weight
 
     encoder_optimizer = torch.optim.Adam(encoder.parameters(), lr=config['lr'])
     decoder_optimizer = torch.optim.Adam(decoder.parameters(), lr=config['lr'])

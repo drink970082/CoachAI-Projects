@@ -51,14 +51,17 @@ class ShotGenDecoder(nn.Module):
     def __init__(self, config, feature_name):
         super().__init__()
         self.feature_embedding = dict()
-        print(config['shot_num'], config['player_num'])
-
+        #print(config['shot_num'], config['player_num'])
+        feature_name = feature_name[:-3]
         for key in feature_name:
-            if key == 'landing_x' or key == 'landing_y' or key == 'player_location_x' or key == 'player_location_y' or key == 'opponent_location_x' or key == 'opponent_location_y':
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
                 continue
-            if key == 'type':
-                key = 'shot'
             num = key + "_num"
+            if key== 'type':
+                num = 'shot' + "_num"
             self.feature_embedding[key] = Embedding(config[num], config['var_dim'])
 
         self.feature_embedding['area'] = nn.Linear(2, config['area_dim'])
@@ -107,7 +110,10 @@ class ShotGenDecoder(nn.Module):
         mask_B_dict  = dict()
         for key in input_dict.keys():
             # print(key)
-            if key == 'landing_x' or key == 'landing_y' or key == 'player_location_x' or key == 'player_location_y' or key == 'opponent_location_x' or key == 'opponent_location_y':
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
                 continue
             mask_A_dict[key] = input_dict[key][:, ::2]
             mask_B_dict[key] = input_dict[key][:, 1::2]
@@ -118,7 +124,10 @@ class ShotGenDecoder(nn.Module):
         # triangular mask
         for key in input_dict.keys():
             # print(key)
-            if key == 'landing_x' or key == 'landing_y' or key == 'player_location_x' or key == 'player_location_y' or key == 'opponent_location_x' or key == 'opponent_location_y':
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
                 continue
             trg_local_mask = get_pad_mask(input_dict[key]) & get_subsequent_mask(input_dict[key])
             trg_global_A_mask = get_pad_mask(mask_A_dict[key]) & get_subsequent_mask(mask_A_dict[key])
@@ -131,13 +140,14 @@ class ShotGenDecoder(nn.Module):
         embedded_dict = dict()
         embedded_dict['area'] = F.relu(self.feature_embedding['area'](area))
         embedded_dict['player_location_area'] = F.relu(self.feature_embedding['player_location'](player_location_area))
-        embedded_dict['opponent_location_area'] = F.relu(self.area_embedding['opponent_location'](opponent_location_area))
+        embedded_dict['opponent_location_area'] = F.relu(self.feature_embedding['opponent_location'](opponent_location_area))
         for key in input_dict.keys():
-            print(key)
-            if key == 'landing_x' or key == 'landing_y' or key == 'player_location_x' or key == 'player_location_y' or key == 'opponent_location_x' or key == 'opponent_location_y':
+            #print(key)
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
                 continue
-            if key == 'type':
-                key = 'shot'
             embedded_dict[key] = self.feature_embedding[key](input_dict[key])
         # embedded_player = self.player_embedding(input_player)
 
@@ -196,9 +206,9 @@ class ShotGenDecoder(nn.Module):
 
 
 class ShotGenPredictor(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, feature_name):
         super().__init__()
-        self.shotgen_decoder = ShotGenDecoder(config)
+        self.shotgen_decoder = ShotGenDecoder(config, feature_name)
         self.area_decoder = nn.Sequential(
             nn.Linear(config['encode_dim'], config['area_num'], bias=False)
         )
@@ -207,16 +217,14 @@ class ShotGenPredictor(nn.Module):
         )
         self.player_embedding = PlayerEmbedding(config['player_num'], config['player_dim'])
 
-    def forward(self, input_shot, input_x, input_y, input_player, encode_local_output, encode_global_A, encode_global_B,
+    def forward(self, input_dict, encode_local_output, encode_global_A, encode_global_B,
                 target_player, return_attns=False):
         embedded_target_player = self.player_embedding(target_player)
         if return_attns:
             decode_output, decoder_self_attention_list, decoder_encoder_self_attention_list, disentangled_weight_local = self.shotgen_decoder(
-                input_shot, input_x, input_y, input_player, encode_local_output, encode_global_A, encode_global_B,
-                return_attns=return_attns)
+                input_dict, encode_local_output, encode_global_A, encode_global_B, return_attns=return_attns)
         else:
-            decode_output = self.shotgen_decoder(input_shot, input_x, input_y, input_player, encode_local_output,
-                                                 encode_global_A, encode_global_B, return_attns)
+            decode_output = self.shotgen_decoder(input_dict, encode_local_output, encode_global_A, encode_global_B, return_attns)
 
         decode_output = (decode_output + embedded_target_player)
 
@@ -233,14 +241,18 @@ class ShotGenEncoder(nn.Module):
     def __init__(self, config, feature_name):
         super().__init__()
         self.feature_embedding = dict()
-        print(config['shot_num'], config['player_num'])
+        # print(config['shot_num'], config['player_num'])
+        feature_name = feature_name[:-3]
 
         for key in feature_name:
-            if key == 'landing_x' or key == 'landing_y' or key == 'player_location_x' or key == 'player_location_y' or key == 'opponent_location_x' or key == 'opponent_location_y':
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
                 continue
-            if key == 'type':
-                key = 'shot'
             num = key + "_num"
+            if key== 'type':
+                num = 'shot' + "_num"
             self.feature_embedding[key] = Embedding(config[num], config['var_dim'])
 
         self.feature_embedding['area'] = nn.Linear(2, config['area_dim'])
@@ -266,6 +278,7 @@ class ShotGenEncoder(nn.Module):
         self.global_layer = EncoderLayer(d_model, d_inner, n_heads, d_k, d_v, dropout=dropout)
         self.local_layer = EncoderLayer(d_model, d_inner, n_heads, d_k, d_v, dropout=dropout)
 
+
     def forward(self, input_dict, src_mask=None, return_attns=False):
         enc_slf_attn_list = []
 
@@ -282,14 +295,15 @@ class ShotGenEncoder(nn.Module):
         embedded_dict = dict()
         embedded_dict['area'] = F.relu(self.feature_embedding['area'](area))
         embedded_dict['player_location_area'] = F.relu(self.feature_embedding['player_location'](player_location_area))
-        embedded_dict['opponent_location_area'] = F.relu(self.area_embedding['opponent_location'](opponent_location_area))
-        for key in input_dict.keys():
-            print(key)
-            if key == 'landing_x' or key == 'landing_y' or key == 'player_location_x' or key == 'player_location_y' or key == 'opponent_location_x' or key == 'opponent_location_y':
+        embedded_dict['opponent_location_area'] = F.relu(self.feature_embedding['opponent_location'](opponent_location_area))
+        for key in input_dict.keys():            
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
                 continue
-            if key == 'type':
-                key = 'shot'
             embedded_dict[key] = self.feature_embedding[key](input_dict[key])
+        
         # embedded_player = self.player_embedding(input_player)
 
         h_a = embedded_dict['area']
