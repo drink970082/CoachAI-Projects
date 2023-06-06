@@ -200,4 +200,4 @@ def prepare_dataset(config):
     test_dataset = BadmintonDataset(test_matches, config)
     test_dataloader = DataLoader(test_dataset, batch_size=config['batch_size'], shuffle=False)
 
-    return config, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches
+    return config, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches, feature_name

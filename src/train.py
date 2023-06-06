@@ -99,7 +99,7 @@ if __name__ == "__main__":
     set_seed(config['seed_value'])
 
     # Clean data and Prepare dataset
-    config, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches = prepare_dataset(config)
+    config, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches, feature_name = prepare_dataset(config)
     device = torch.device(f"cuda:{config['gpu_num']}" if torch.cuda.is_available() else "cpu")
     print("Model path: {}".format(config['output_folder_name']))
     if not os.path.exists(config['output_folder_name']):
@@ -110,7 +110,7 @@ if __name__ == "__main__":
     from ShuttleNet.ShuttleNet_runner import shotGen_trainer
 
     encoder = ShotGenEncoder(config, feature_name)
-    decoder = ShotGenPredictor(config)
+    decoder = ShotGenPredictor(config, feature_name)
     encoder.area_embedding.weight = decoder.shotgen_decoder.area_embedding.weight
     encoder.shot_embedding.weight = decoder.shotgen_decoder.shot_embedding.weight
     encoder.player_embedding.weight = decoder.shotgen_decoder.player_embedding.weight
