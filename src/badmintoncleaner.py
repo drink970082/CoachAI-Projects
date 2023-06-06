@@ -13,18 +13,21 @@ class BadmintonDataset(Dataset):
     def __init__(self, matches, config):
         super().__init__()
         self.max_ball_round = config['max_ball_round']
-        group = matches[['rally_id', 'ball_round', 'type', 'landing_x', 'landing_y', 'player', 'set',\
-                         'time', 'roundscore_A', 'roundscore_B', 'aroundhead', 'backhand','landing_height',\
-                         'landing_area', 'player_location_area', 'player_location_x','player_location_y',\
-                         'opponent_location_area', 'opponent_location_x','opponent_location_y']]\
-                .groupby('rally_id')\
-                .apply(lambda r: (r['ball_round'].values, r['type'].values, r['landing_x'].values,\
-                                  r['landing_y'].values, r['player'].values, r['set'].values,\
-                                  r['time'].values, r['roundscore_A'].values, r['roundscore_B'].values,\
-                                  r['aroundhead'].values, r['backhand'].values, r['landing_height'].values,\
-                                  r['landing_area'].values, r['player_location_area'].values, r['player_location_x'].values,\
-                                  r['player_location_y'].values, r['opponent_location_area'].values,\
-                                  r['opponent_location_x'].values, r['opponent_location_y'].values))
+        self.feature_selected = ['type', 'landing_x', 'landing_y', 'player',
+                                 'time', 'roundscore_A', 'roundscore_B', 'aroundhead', 'backhand', 'landing_height',
+                                 'landing_area', 'player_location_area', 'player_location_x', 'player_location_y',
+                                 'opponent_location_area', 'opponent_location_x', 'opponent_location_y', 'rally_id',
+                                 'set', 'ball_round']
+
+        group = matches[self.feature_selected] \
+            .groupby('rally_id') \
+            .apply(lambda r: (r['ball_round'].values, r['type'].values, r['landing_x'].values,
+                              r['landing_y'].values, r['player'].values, r['set'].values,
+                              r['time'].values, r['roundscore_A'].values, r['roundscore_B'].values,
+                              r['aroundhead'].values, r['backhand'].values, r['landing_height'].values,
+                              r['landing_area'].values, r['player_location_area'].values, r['player_location_x'].values,
+                              r['player_location_y'].values, r['opponent_location_area'].values,
+                              r['opponent_location_x'].values, r['opponent_location_y'].values))
 
         self.sequences, self.rally_ids = {}, []
 
@@ -40,10 +43,16 @@ class BadmintonDataset(Dataset):
             roundscore_A = roundscore_A/26
             roundscore_B = roundscore_B/26
             landing_height -= 1
-            player_location_x = player_location_x/100 -2
-            player_location_y = player_location_y/200 -2
-            opponent_location_x = opponent_location_x/100-2
-            opponent_location_y = opponent_location_y/200-2
+            player_location_x = player_location_x / 100 - 2
+            player_location_y = player_location_y / 200 - 2
+            opponent_location_x = opponent_location_x / 100 - 2
+            opponent_location_y = opponent_location_y / 200 - 2
+
+            self.sequences[rally_id] = (ball_round, shot_type, landing_x, landing_y, player, sets,
+                                        time, roundscore_A, roundscore_B, aroundhead, backhand,
+                                        landing_height, landing_area, player_location_area,
+                                        player_location_x, player_location_y, opponent_location_area,
+                                        opponent_location_x, opponent_location_y)
 
             self.sequences[rally_id] = (ball_round, shot_type, landing_x, landing_y, player, sets,\
                                         time, roundscore_A, roundscore_B, aroundhead, backhand,\
@@ -166,7 +175,11 @@ def prepare_dataset(config):
     train_matches = pd.read_csv(f"{config['data_folder']}train.csv")
     val_matches = pd.read_csv(f"{config['data_folder']}val_given.csv")
     test_matches = pd.read_csv(f"{config['data_folder']}test_given.csv")
-
+    feature_selected = ['type', 'landing_x', 'landing_y', 'player', 'time', 'roundscore_A', 'roundscore_B',
+                        'aroundhead', 'backhand', 'landing_height',
+                        'landing_area', 'player_location_area', 'player_location_x', 'player_location_y',
+                        'opponent_location_area', 'opponent_location_x', 'opponent_location_y', 'rally_id',
+                        'set', 'ball_round']
     # encode shot type
     codes_type, uniques_type = pd.factorize(train_matches['type'])
     train_matches['type'] = codes_type + 1                                # Reserve code 0 for paddings
