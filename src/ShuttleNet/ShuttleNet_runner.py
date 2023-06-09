@@ -111,7 +111,7 @@ def shotGen_trainer(data_loader, feature_name, encoder, decoder, criterion, enco
             _, output_shot = torch.topk(output_shot_logits, 1)
             gold_xy = torch.cat((target_x.unsqueeze(-1), target_y.unsqueeze(-1)), dim=-1).to(device, dtype=torch.float)
 
-            total_instance += len(target_shot)
+            total_instance = total_instance + len(target_shot)
 
             loss_shot = criterion['entropy'](output_shot_logits, target_shot.type(torch.LongTensor))
             loss_area = Gaussian2D_loss(output_xy, gold_xy)
@@ -122,9 +122,9 @@ def shotGen_trainer(data_loader, feature_name, encoder, decoder, criterion, enco
             encoder_optimizer.step()
             decoder_optimizer.step()
 
-            total_loss += loss.item()
-            total_shot_loss += loss_shot.item()
-            total_area_loss += loss_area.item()
+            total_loss = total_loss + loss.item()
+            total_shot_loss = total_shot_loss + loss_shot.item()
+            total_area_loss = total_area_loss + loss_area.item()
 
         total_loss = round(total_loss / total_instance, 4)
         total_shot_loss = round(total_shot_loss / total_instance, 4)

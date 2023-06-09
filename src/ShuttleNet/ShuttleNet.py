@@ -156,8 +156,8 @@ class ShotGenDecoder(nn.Module):
         for key in embedded_dict.keys():
             if key == 'area' or key == 'type':
                 continue
-            h_a += embedded_dict[key]
-            h_s += embedded_dict[key]
+            h_a = h_a + embedded_dict[key]
+            h_s = h_s + embedded_dict[key]
 
         # split player
 
@@ -165,7 +165,6 @@ class ShotGenDecoder(nn.Module):
         h_a_B = h_a[:, 1::2]
         h_s_A = h_s[:, ::2]
         h_s_B = h_s[:, 1::2]
-
         # local
         decode_output_area = self.dropout(self.position_embedding(h_a, mode='decode'))
         decode_output_shot = self.dropout(self.position_embedding(h_s, mode='decode'))
@@ -198,7 +197,6 @@ class ShotGenDecoder(nn.Module):
             decode_output_A = decode_global_A.clone()
             decode_output_B = torch.zeros(decode_local_output.shape, device=decode_local_output.device)
         decode_output = self.gated_fusion(decode_output_A, decode_output_B, decode_local_output)
-
         # (batch, seq_len, encode_dim)
         if return_attns:
             return decode_output, decoder_self_attention_list, decoder_encoder_self_attention_list, disentangled_weight_local
@@ -230,6 +228,7 @@ class ShotGenPredictor(nn.Module):
 
         area_logits = self.area_decoder(decode_output)
         shot_logits = self.shot_decoder(decode_output)
+
 
         if return_attns:
             return area_logits, shot_logits, decoder_self_attention_list, decoder_encoder_self_attention_list, disentangled_weight_local
@@ -302,8 +301,9 @@ class ShotGenEncoder(nn.Module):
                key == 'player_location_area' or key == 'opponent_location_area' or\
                key == 'opponent_location_x' or key == 'opponent_location_y':
                 continue
+            print(key)
+            print(input_dict[key])
             embedded_dict[key] = self.feature_embedding[key](input_dict[key])
-        
         # embedded_player = self.player_embedding(input_player)
 
         h_a = embedded_dict['area']
@@ -311,15 +311,15 @@ class ShotGenEncoder(nn.Module):
         for key in embedded_dict.keys():
             if key == 'area' or key == 'type':
                 continue
-            h_a += embedded_dict[key]
-            h_s += embedded_dict[key]
-
+            h_a = h_a + embedded_dict[key]
+            h_s = h_s + embedded_dict[key]
         # split player
 
         h_a_A = h_a[:, ::2]
         h_a_B = h_a[:, 1::2]
         h_s_A = h_s[:, ::2]
         h_s_B = h_s[:, 1::2]
+
 
         # local
         encode_output_area = self.dropout(self.position_embedding(h_a, mode='encode'))
@@ -335,10 +335,8 @@ class ShotGenEncoder(nn.Module):
                                                             slf_attn_mask=src_mask)
         encode_global_B, enc_slf_attn_B = self.global_layer(encode_output_area_B, encode_output_shot_B,
                                                             slf_attn_mask=src_mask)
-
         encode_local_output, enc_slf_attn = self.local_layer(encode_output_area, encode_output_shot,
                                                              slf_attn_mask=src_mask)
-
         if return_attns:
             return encode_local_output, encode_global_A, encode_global_B, enc_slf_attn_list
         return encode_local_output, encode_global_A, encode_global_B
