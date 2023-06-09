@@ -93,7 +93,6 @@ def prepare_dataset(config):
 
     train_dataset = BadmintonDataset(train_matches, config)
     train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
-
     val_dataset = BadmintonDataset(val_matches, config)
     val_dataloader = DataLoader(val_dataset, batch_size=config['batch_size'], shuffle=False)
 

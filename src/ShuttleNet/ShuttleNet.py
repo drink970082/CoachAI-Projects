@@ -301,8 +301,6 @@ class ShotGenEncoder(nn.Module):
                key == 'player_location_area' or key == 'opponent_location_area' or\
                key == 'opponent_location_x' or key == 'opponent_location_y':
                 continue
-            print(key)
-            print(input_dict[key])
             embedded_dict[key] = self.feature_embedding[key](input_dict[key])
         # embedded_player = self.player_embedding(input_player)
 

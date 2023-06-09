@@ -40,7 +40,7 @@ class BadmintonDataset(Dataset):
                 opponent_location_x, opponent_location_y = group[rally_id]
 
 
-            landing_height -= 1
+            landing_height = landing_height- 1
             player_location_x = player_location_x / 100 - 2
             player_location_y = player_location_y / 200 - 2
             opponent_location_x = opponent_location_x / 100 - 2
