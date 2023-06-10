@@ -34,7 +34,7 @@ class DecoderLayer(nn.Module):
         decode_output = self.pos_ffn(decode_output)
         return decode_output, dec_slf_attn, dec_enc_slf_attn, disentangled_weight
 
-
+# 可改 加layer 或是改function
 class GatedFusionLayer(nn.Module):
     def __init__(self, d, d_inner, encode_length, n_position=200):
         super().__init__()

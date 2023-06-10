@@ -39,9 +39,8 @@ class BadmintonDataset(Dataset):
                 player_location_x, player_location_y, opponent_location_area, \
                 opponent_location_x, opponent_location_y = group[rally_id]
 
-            roundscore_A = roundscore_A / 26
-            roundscore_B = roundscore_B / 26
-            landing_height -= 1
+
+            landing_height = landing_height- 1
             player_location_x = player_location_x / 100 - 2
             player_location_y = player_location_y / 200 - 2
             opponent_location_x = opponent_location_x / 100 - 2
@@ -79,8 +78,8 @@ class BadmintonDataset(Dataset):
         pad_output_y = np.full(self.max_ball_round, fill_value=PAD, dtype=float)
         pad_output_player = np.full(self.max_ball_round, fill_value=PAD, dtype=int)
 
-        pad_roundscore_A = np.full(self.max_ball_round, fill_value=PAD, dtype=float)
-        pad_roundscore_B = np.full(self.max_ball_round, fill_value=PAD, dtype=float)
+        pad_roundscore_A = np.full(self.max_ball_round, fill_value=PAD, dtype=int)
+        pad_roundscore_B = np.full(self.max_ball_round, fill_value=PAD, dtype=int)
         pad_aroundhead = np.full(self.max_ball_round, fill_value=PAD, dtype=int)
         pad_backhand = np.full(self.max_ball_round, fill_value=PAD, dtype=int)
         pad_landing_height = np.full(self.max_ball_round, fill_value=PAD, dtype=int)
@@ -196,9 +195,9 @@ def prepare_dataset(config):
 
     train_dataset = BadmintonDataset(train_matches, config)
     feature_name = train_dataset.feature_selected
-    del feature_name['rally_id']
-    del feature_name['set']
-    del feature_name['ball_round']
+    # del feature_name['rally_id']
+    # del feature_name['set']
+    # del feature_name['ball_round']
     train_dataloader = DataLoader(train_dataset, batch_size=config['batch_size'], shuffle=True)
 
     val_dataset = BadmintonDataset(val_matches, config)
@@ -207,4 +206,4 @@ def prepare_dataset(config):
     test_dataset = BadmintonDataset(test_matches, config)
     test_dataloader = DataLoader(test_dataset, batch_size=config['batch_size'], shuffle=False)
 
-    return config, feature_name, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches
+    return config, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches, feature_name

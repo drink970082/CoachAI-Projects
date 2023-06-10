@@ -69,7 +69,7 @@ class MultiHeadAttention(nn.Module):
         # Combine the last two dimensions to concatenate all the heads together: b x lq x (n*dv)
         q = q.transpose(1, 2).contiguous().view(sz_b, len_q, -1)
         q = self.dropout(self.fc(q))
-        q += residual
+        q = q + residual
 
         q = self.layer_norm(q)
 
@@ -177,7 +177,7 @@ class TypeAreaMultiHeadAttention(nn.Module):
         output = output.transpose(1, 2).contiguous().view(sz_b, len_q, -1)
         output = self.dropout(self.fc(output))
 
-        output += (residual_a + residual_s)
+        output = output + (residual_a + residual_s)
         output = self.layer_norm(output)
 
         return output, attn, disentangled
@@ -197,7 +197,7 @@ class PositionwiseFeedForward(nn.Module):
 
         x = self.w_2(F.gelu(self.w_1(x)))
         x = self.dropout(x)
-        x += residual
+        x = x + residual
 
         x = self.layer_norm(x)
 

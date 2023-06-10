@@ -18,9 +18,9 @@ def get_argument():
                      type=str,
                      help="path to save model")
     opt.add_argument("--seed_value",
-                     type=int,
-                     default=42,
-                     help="seed value")
+                        type=int,
+                        default=42,  
+                        help="seed value")   #可改
     opt.add_argument("--max_ball_round",
                      type=int,
                      default=70,
@@ -34,13 +34,13 @@ def get_argument():
                      default=32,
                      help="batch size")
     opt.add_argument("--lr",
-                     type=int,
-                     default=1e-4,
-                     help="learning rate")
+                        type=int,
+                        default=1e-4,
+                        help="learning rate")  #可改
     opt.add_argument("--epochs",
-                     type=int,
-                     default=150,
-                     help="epochs")
+                        type=int,
+                        default=150,
+                        help="epochs")  #可改
     opt.add_argument("--n_layers",
                      type=int,
                      default=1,
@@ -99,9 +99,7 @@ if __name__ == "__main__":
     set_seed(config['seed_value'])
 
     # Clean data and Prepare dataset
-    config, feature_name, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches = prepare_dataset(
-        config)
-
+    config, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches, feature_name = prepare_dataset(config)
     device = torch.device(f"cuda:{config['gpu_num']}" if torch.cuda.is_available() else "cpu")
     print("Model path: {}".format(config['output_folder_name']))
     if not os.path.exists(config['output_folder_name']):
@@ -112,11 +110,11 @@ if __name__ == "__main__":
     from ShuttleNet.ShuttleNet_runner import shotGen_trainer
 
     encoder = ShotGenEncoder(config, feature_name)
-    decoder = ShotGenPredictor(config)
-    encoder.area_embedding.weight = decoder.shotgen_decoder.area_embedding.weight
-    encoder.shot_embedding.weight = decoder.shotgen_decoder.shot_embedding.weight
-    encoder.player_embedding.weight = decoder.shotgen_decoder.player_embedding.weight
-    decoder.player_embedding.weight = decoder.shotgen_decoder.player_embedding.weight
+    decoder = ShotGenPredictor(config, feature_name)
+    encoder.feature_embedding['area'].weight = decoder.shotgen_decoder.feature_embedding['area'].weight
+    encoder.feature_embedding['type'].weight = decoder.shotgen_decoder.feature_embedding['type'].weight
+    encoder.feature_embedding['player'].weight = decoder.shotgen_decoder.feature_embedding['player'] .weight
+    decoder.player_embedding.weight = decoder.shotgen_decoder.feature_embedding['player'] .weight
 
     encoder_optimizer = torch.optim.Adam(encoder.parameters(), lr=config['lr'])
     decoder_optimizer = torch.optim.Adam(decoder.parameters(), lr=config['lr'])

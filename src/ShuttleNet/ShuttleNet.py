@@ -48,11 +48,30 @@ def alternatemerge(seq_A, seq_B, merge_len, player):
 
 
 class ShotGenDecoder(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, feature_name):
         super().__init__()
-        self.area_embedding = nn.Linear(2, config['area_dim'])
-        self.shot_embedding = ShotEmbedding(config['shot_num'], config['shot_dim'])
-        self.player_embedding = PlayerEmbedding(config['player_num'], config['player_dim'])
+        self.feature_embedding = dict()
+        #print(config['shot_num'], config['player_num'])
+        feature_name = feature_name[:-3]
+        for key in feature_name:
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
+                continue
+            num = key + "_num"
+            if key== 'type':
+                num = 'shot' + "_num"
+            self.feature_embedding[key] = Embedding(config[num], config['var_dim'])
+
+        self.feature_embedding['area'] = nn.Linear(2, config['area_dim'])
+        self.feature_embedding['landing'] = nn.Linear(2, config['area_dim'])
+        self.feature_embedding['player_location'] = nn.Linear(2, config['area_dim'])
+        self.feature_embedding['opponent_location'] = nn.Linear(2, config['area_dim'])
+
+        #self.area_embedding = nn.Linear(2, config['area_dim'])
+        #self.shot_embedding = ShotEmbedding(config['shot_num'], config['shot_dim'])
+        #self.player_embedding = PlayerEmbedding(config['player_num'], config['player_dim'])
 
         n_heads = 2
         d_k = config['encode_dim']
@@ -75,24 +94,61 @@ class ShotGenDecoder(nn.Module):
                 trg_mask=None, return_attns=False):
         decoder_self_attention_list, decoder_encoder_self_attention_list = [], []
 
-        # area = torch.cat((input_x.unsqueeze(-1), input_y.unsqueeze(-1)), dim=-1).float()
         area = torch.cat((input_dict['landing_x'].unsqueeze(-1), input_dict['landing_y'].unsqueeze(-1)), dim=-1).float()
+        player_location_area = torch.cat(
+            (input_dict['player_location_x'].unsqueeze(-1), input_dict['player_location_y'].unsqueeze(-1)),
+            dim=-1).float()
+        opponent_location_area = torch.cat(
+            (input_dict['opponent_location_x'].unsqueeze(-1), input_dict['opponent_location_y'].unsqueeze(-1)),
+            dim=-1).float()
+
+        # area = torch.cat((input_x.unsqueeze(-1), input_y.unsqueeze(-1)), dim=-1).float()
+        # area = torch.cat((input_dict['landing_x'].unsqueeze(-1), input_dict['landing_y'].unsqueeze(-1)), dim=-1).float()
 
         # split player only for masking
-        mask_A = input_dict['type'][:, ::2]
-        mask_B = input_dict['type'][:, 1::2]
+        mask_A_dict  = dict()
+        mask_B_dict  = dict()
+        for key in input_dict.keys():
+            # print(key)
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
+                continue
+            mask_A_dict[key] = input_dict[key][:, ::2]
+            mask_B_dict[key] = input_dict[key][:, 1::2]
+        
+        # mask_A = input_dict['type'][:, ::2]
+        # mask_B = input_dict['type'][:, 1::2]
 
         # triangular mask
-        trg_local_mask = get_pad_mask(input_dict['type']) & get_subsequent_mask(input_dict['type'])
-        trg_global_A_mask = get_pad_mask(mask_A) & get_subsequent_mask(mask_A)
-        trg_global_B_mask = get_pad_mask(mask_B) & get_subsequent_mask(mask_B)
+        for key in input_dict.keys():
+            # print(key)
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
+                continue
+            trg_local_mask = get_pad_mask(input_dict[key]) & get_subsequent_mask(input_dict[key])
+            trg_global_A_mask = get_pad_mask(mask_A_dict[key]) & get_subsequent_mask(mask_A_dict[key])
+            trg_global_B_mask = get_pad_mask(mask_B_dict[key]) & get_subsequent_mask(mask_B_dict[key])
+
+        #trg_local_mask = get_pad_mask(input_dict['type']) & get_subsequent_mask(input_dict['type'])
+        #trg_global_A_mask = get_pad_mask(mask_A) & get_subsequent_mask(mask_A)
+        #trg_global_B_mask = get_pad_mask(mask_B) & get_subsequent_mask(mask_B)
 
         embedded_dict = dict()
-        embedded_dict['area'] = F.relu(self.area_embedding(area))
+        embedded_dict['area'] = F.relu(self.feature_embedding['area'](area))
+        embedded_dict['player_location_area'] = F.relu(self.feature_embedding['player_location'](player_location_area))
+        embedded_dict['opponent_location_area'] = F.relu(self.feature_embedding['opponent_location'](opponent_location_area))
         for key in input_dict.keys():
-            if key == 'landing_x' or key == 'landing_y':
+            #print(key)
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
                 continue
-            embedded_dict[key] = self.embedding(input_dict[key])
+            embedded_dict[key] = self.feature_embedding[key](input_dict[key])
         # embedded_player = self.player_embedding(input_player)
 
         h_a = embedded_dict['area']
@@ -100,8 +156,8 @@ class ShotGenDecoder(nn.Module):
         for key in embedded_dict.keys():
             if key == 'area' or key == 'type':
                 continue
-            h_a += embedded_dict[key]
-            h_s += embedded_dict[key]
+            h_a = h_a + embedded_dict[key]
+            h_s = h_s + embedded_dict[key]
 
         # split player
 
@@ -109,7 +165,6 @@ class ShotGenDecoder(nn.Module):
         h_a_B = h_a[:, 1::2]
         h_s_A = h_s[:, ::2]
         h_s_B = h_s[:, 1::2]
-
         # local
         decode_output_area = self.dropout(self.position_embedding(h_a, mode='decode'))
         decode_output_shot = self.dropout(self.position_embedding(h_s, mode='decode'))
@@ -142,7 +197,6 @@ class ShotGenDecoder(nn.Module):
             decode_output_A = decode_global_A.clone()
             decode_output_B = torch.zeros(decode_local_output.shape, device=decode_local_output.device)
         decode_output = self.gated_fusion(decode_output_A, decode_output_B, decode_local_output)
-
         # (batch, seq_len, encode_dim)
         if return_attns:
             return decode_output, decoder_self_attention_list, decoder_encoder_self_attention_list, disentangled_weight_local
@@ -150,9 +204,9 @@ class ShotGenDecoder(nn.Module):
 
 
 class ShotGenPredictor(nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, feature_name):
         super().__init__()
-        self.shotgen_decoder = ShotGenDecoder(config)
+        self.shotgen_decoder = ShotGenDecoder(config, feature_name)
         self.area_decoder = nn.Sequential(
             nn.Linear(config['encode_dim'], config['area_num'], bias=False)
         )
@@ -161,21 +215,20 @@ class ShotGenPredictor(nn.Module):
         )
         self.player_embedding = PlayerEmbedding(config['player_num'], config['player_dim'])
 
-    def forward(self, input_shot, input_x, input_y, input_player, encode_local_output, encode_global_A, encode_global_B,
+    def forward(self, input_dict, encode_local_output, encode_global_A, encode_global_B,
                 target_player, return_attns=False):
         embedded_target_player = self.player_embedding(target_player)
         if return_attns:
             decode_output, decoder_self_attention_list, decoder_encoder_self_attention_list, disentangled_weight_local = self.shotgen_decoder(
-                input_shot, input_x, input_y, input_player, encode_local_output, encode_global_A, encode_global_B,
-                return_attns=return_attns)
+                input_dict, encode_local_output, encode_global_A, encode_global_B, return_attns=return_attns)
         else:
-            decode_output = self.shotgen_decoder(input_shot, input_x, input_y, input_player, encode_local_output,
-                                                 encode_global_A, encode_global_B, return_attns)
+            decode_output = self.shotgen_decoder(input_dict, encode_local_output, encode_global_A, encode_global_B, return_attns)
 
         decode_output = (decode_output + embedded_target_player)
 
         area_logits = self.area_decoder(decode_output)
         shot_logits = self.shot_decoder(decode_output)
+
 
         if return_attns:
             return area_logits, shot_logits, decoder_self_attention_list, decoder_encoder_self_attention_list, disentangled_weight_local
@@ -187,14 +240,18 @@ class ShotGenEncoder(nn.Module):
     def __init__(self, config, feature_name):
         super().__init__()
         self.feature_embedding = dict()
-        print(config['shot_num'], config['player_num'])
+        # print(config['shot_num'], config['player_num'])
+        feature_name = feature_name[:-3]
 
         for key in feature_name:
-            if key == 'landing_x' or key == 'landing_y' or key == 'player_location_x' or key == 'player_location_y' or key == 'opponent_location_x' or key == 'opponent_location_y':
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
                 continue
-            if key == 'type':
-                key = 'shot'
             num = key + "_num"
+            if key== 'type':
+                num = 'shot' + "_num"
             self.feature_embedding[key] = Embedding(config[num], config['var_dim'])
 
         self.feature_embedding['area'] = nn.Linear(2, config['area_dim'])
@@ -220,6 +277,7 @@ class ShotGenEncoder(nn.Module):
         self.global_layer = EncoderLayer(d_model, d_inner, n_heads, d_k, d_v, dropout=dropout)
         self.local_layer = EncoderLayer(d_model, d_inner, n_heads, d_k, d_v, dropout=dropout)
 
+
     def forward(self, input_dict, src_mask=None, return_attns=False):
         enc_slf_attn_list = []
 
@@ -236,13 +294,13 @@ class ShotGenEncoder(nn.Module):
         embedded_dict = dict()
         embedded_dict['area'] = F.relu(self.feature_embedding['area'](area))
         embedded_dict['player_location_area'] = F.relu(self.feature_embedding['player_location'](player_location_area))
-        embedded_dict['opponent_location_area'] = F.relu(self.area_embedding['opponent_location'](opponent_location_area))
-        for key in input_dict.keys():
-            print(key)
-            if key == 'landing_x' or key == 'landing_y' or key == 'player_location_x' or key == 'player_location_y' or key == 'opponent_location_x' or key == 'opponent_location_y':
+        embedded_dict['opponent_location_area'] = F.relu(self.feature_embedding['opponent_location'](opponent_location_area))
+        for key in input_dict.keys():            
+            if key == 'landing_x' or key == 'landing_y' or\
+               key == 'player_location_x' or key == 'player_location_y' or\
+               key == 'player_location_area' or key == 'opponent_location_area' or\
+               key == 'opponent_location_x' or key == 'opponent_location_y':
                 continue
-            if key == 'type':
-                key = 'shot'
             embedded_dict[key] = self.feature_embedding[key](input_dict[key])
         # embedded_player = self.player_embedding(input_player)
 
@@ -251,15 +309,15 @@ class ShotGenEncoder(nn.Module):
         for key in embedded_dict.keys():
             if key == 'area' or key == 'type':
                 continue
-            h_a += embedded_dict[key]
-            h_s += embedded_dict[key]
-
+            h_a = h_a + embedded_dict[key]
+            h_s = h_s + embedded_dict[key]
         # split player
 
         h_a_A = h_a[:, ::2]
         h_a_B = h_a[:, 1::2]
         h_s_A = h_s[:, ::2]
         h_s_B = h_s[:, 1::2]
+
 
         # local
         encode_output_area = self.dropout(self.position_embedding(h_a, mode='encode'))
@@ -275,10 +333,8 @@ class ShotGenEncoder(nn.Module):
                                                             slf_attn_mask=src_mask)
         encode_global_B, enc_slf_attn_B = self.global_layer(encode_output_area_B, encode_output_shot_B,
                                                             slf_attn_mask=src_mask)
-
         encode_local_output, enc_slf_attn = self.local_layer(encode_output_area, encode_output_shot,
                                                              slf_attn_mask=src_mask)
-
         if return_attns:
             return encode_local_output, encode_global_A, encode_global_B, enc_slf_attn_list
         return encode_local_output, encode_global_A, encode_global_B
