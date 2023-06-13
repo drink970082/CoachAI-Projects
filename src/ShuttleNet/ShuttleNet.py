@@ -55,9 +55,8 @@ class ShotGenDecoder(nn.Module):
         feature_name = feature_name[:-3]
         for key in feature_name:
             if key == 'landing_x' or key == 'landing_y' or\
-               key == 'player_location_x' or key == 'player_location_y' or\
-               key == 'player_location_area' or key == 'opponent_location_area' or\
-               key == 'opponent_location_x' or key == 'opponent_location_y':
+               key == 'time_diff' or key == 'shot_angle' or\
+               key == 'distance':
                 continue
             num = key + "_num"
             if key== 'type':
@@ -65,9 +64,10 @@ class ShotGenDecoder(nn.Module):
             self.feature_embedding[key] = Embedding(config[num], config['var_dim'])
 
         self.feature_embedding['area'] = nn.Linear(2, config['area_dim'])
-        self.feature_embedding['landing'] = nn.Linear(2, config['area_dim'])
-        self.feature_embedding['player_location'] = nn.Linear(2, config['area_dim'])
-        self.feature_embedding['opponent_location'] = nn.Linear(2, config['area_dim'])
+        self.feature_embedding['time_diff'] = nn.Linear(1, config['area_dim'])
+        self.feature_embedding['shot_angle'] = nn.Linear(1, config['area_dim'])
+        self.feature_embedding['distance'] = nn.Linear(1, config['area_dim'])
+
 
         #self.area_embedding = nn.Linear(2, config['area_dim'])
         #self.shot_embedding = ShotEmbedding(config['shot_num'], config['shot_dim'])
@@ -93,14 +93,12 @@ class ShotGenDecoder(nn.Module):
     def forward(self, input_dict, encode_local_output, encode_global_A, encode_global_B,
                 trg_mask=None, return_attns=False):
         decoder_self_attention_list, decoder_encoder_self_attention_list = [], []
+        
 
         area = torch.cat((input_dict['landing_x'].unsqueeze(-1), input_dict['landing_y'].unsqueeze(-1)), dim=-1).float()
-        player_location_area = torch.cat(
-            (input_dict['player_location_x'].unsqueeze(-1), input_dict['player_location_y'].unsqueeze(-1)),
-            dim=-1).float()
-        opponent_location_area = torch.cat(
-            (input_dict['opponent_location_x'].unsqueeze(-1), input_dict['opponent_location_y'].unsqueeze(-1)),
-            dim=-1).float()
+        time_diff = input_dict['time_diff'].unsqueeze(-1).float()
+        shot_angle = input_dict['shot_angle'].unsqueeze(-1).float()
+        distance = input_dict['distance'].unsqueeze(-1).float()
 
         # area = torch.cat((input_x.unsqueeze(-1), input_y.unsqueeze(-1)), dim=-1).float()
         # area = torch.cat((input_dict['landing_x'].unsqueeze(-1), input_dict['landing_y'].unsqueeze(-1)), dim=-1).float()
@@ -108,12 +106,10 @@ class ShotGenDecoder(nn.Module):
         # split player only for masking
         mask_A_dict  = dict()
         mask_B_dict  = dict()
-        for key in input_dict.keys():
-            # print(key)
+        for key in input_dict.keys():            
             if key == 'landing_x' or key == 'landing_y' or\
-               key == 'player_location_x' or key == 'player_location_y' or\
-               key == 'player_location_area' or key == 'opponent_location_area' or\
-               key == 'opponent_location_x' or key == 'opponent_location_y':
+               key == 'time_diff' or key == 'shot_angle' or\
+               key == 'distance' or key == 'area':
                 continue
             mask_A_dict[key] = input_dict[key][:, ::2]
             mask_B_dict[key] = input_dict[key][:, 1::2]
@@ -122,12 +118,10 @@ class ShotGenDecoder(nn.Module):
         # mask_B = input_dict['type'][:, 1::2]
 
         # triangular mask
-        for key in input_dict.keys():
-            # print(key)
+        for key in input_dict.keys():            
             if key == 'landing_x' or key == 'landing_y' or\
-               key == 'player_location_x' or key == 'player_location_y' or\
-               key == 'player_location_area' or key == 'opponent_location_area' or\
-               key == 'opponent_location_x' or key == 'opponent_location_y':
+               key == 'time_diff' or key == 'shot_angle' or\
+               key == 'distance' or key == 'area':
                 continue
             trg_local_mask = get_pad_mask(input_dict[key]) & get_subsequent_mask(input_dict[key])
             trg_global_A_mask = get_pad_mask(mask_A_dict[key]) & get_subsequent_mask(mask_A_dict[key])
@@ -137,18 +131,18 @@ class ShotGenDecoder(nn.Module):
         #trg_global_A_mask = get_pad_mask(mask_A) & get_subsequent_mask(mask_A)
         #trg_global_B_mask = get_pad_mask(mask_B) & get_subsequent_mask(mask_B)
 
+
         embedded_dict = dict()
         embedded_dict['area'] = F.relu(self.feature_embedding['area'](area))
-        embedded_dict['player_location_area'] = F.relu(self.feature_embedding['player_location'](player_location_area))
-        embedded_dict['opponent_location_area'] = F.relu(self.feature_embedding['opponent_location'](opponent_location_area))
-        for key in input_dict.keys():
-            #print(key)
+        embedded_dict['time_diff'] = F.relu(self.feature_embedding['time_diff'](time_diff))
+        embedded_dict['shot_angle'] = F.relu(self.feature_embedding['shot_angle'](shot_angle))
+        embedded_dict['distance'] = F.relu(self.feature_embedding['distance'](distance))
+        for key in input_dict.keys():            
             if key == 'landing_x' or key == 'landing_y' or\
-               key == 'player_location_x' or key == 'player_location_y' or\
-               key == 'player_location_area' or key == 'opponent_location_area' or\
-               key == 'opponent_location_x' or key == 'opponent_location_y':
+               key == 'time_diff' or key == 'shot_angle' or\
+               key == 'distance' or key == 'area':
                 continue
-            embedded_dict[key] = self.feature_embedding[key](input_dict[key])
+            embedded_dict[key] = self.feature_embedding[key](input_dict[key].to(torch.int64))
         # embedded_player = self.player_embedding(input_player)
 
         h_a = embedded_dict['area']
@@ -242,12 +236,11 @@ class ShotGenEncoder(nn.Module):
         self.feature_embedding = dict()
         # print(config['shot_num'], config['player_num'])
         feature_name = feature_name[:-3]
-
+        
         for key in feature_name:
             if key == 'landing_x' or key == 'landing_y' or\
-               key == 'player_location_x' or key == 'player_location_y' or\
-               key == 'player_location_area' or key == 'opponent_location_area' or\
-               key == 'opponent_location_x' or key == 'opponent_location_y':
+               key == 'time_diff' or key == 'shot_angle' or\
+               key == 'distance':
                 continue
             num = key + "_num"
             if key== 'type':
@@ -255,9 +248,9 @@ class ShotGenEncoder(nn.Module):
             self.feature_embedding[key] = Embedding(config[num], config['var_dim'])
 
         self.feature_embedding['area'] = nn.Linear(2, config['area_dim'])
-        self.feature_embedding['landing'] = nn.Linear(2, config['area_dim'])
-        self.feature_embedding['player_location'] = nn.Linear(2, config['area_dim'])
-        self.feature_embedding['opponent_location'] = nn.Linear(2, config['area_dim'])
+        self.feature_embedding['time_diff'] = nn.Linear(1, config['area_dim'])
+        self.feature_embedding['shot_angle'] = nn.Linear(1, config['area_dim'])
+        self.feature_embedding['distance'] = nn.Linear(1, config['area_dim'])
 
         # self.shot_embedding = ShotEmbedding(config['shot_num'], config['shot_dim'])
         # self.player_embedding = PlayerEmbedding(config['player_num'], config['player_dim'])
@@ -280,28 +273,25 @@ class ShotGenEncoder(nn.Module):
 
     def forward(self, input_dict, src_mask=None, return_attns=False):
         enc_slf_attn_list = []
-
         area = torch.cat((input_dict['landing_x'].unsqueeze(-1), input_dict['landing_y'].unsqueeze(-1)), dim=-1).float()
-        player_location_area = torch.cat(
-            (input_dict['player_location_x'].unsqueeze(-1), input_dict['player_location_y'].unsqueeze(-1)),
-            dim=-1).float()
-        opponent_location_area = torch.cat(
-            (input_dict['opponent_location_x'].unsqueeze(-1), input_dict['opponent_location_y'].unsqueeze(-1)),
-            dim=-1).float()
+        time_diff = input_dict['time_diff'].unsqueeze(-1).float()
+        shot_angle = input_dict['shot_angle'].unsqueeze(-1).float()
+        distance = input_dict['distance'].unsqueeze(-1).float()
         # area = torch.cat((input_x.unsqueeze(-1), input_y.unsqueeze(-1)), dim=-1).float()
 
         # embedded_area = F.relu(self.area_embedding(area))
         embedded_dict = dict()
         embedded_dict['area'] = F.relu(self.feature_embedding['area'](area))
-        embedded_dict['player_location_area'] = F.relu(self.feature_embedding['player_location'](player_location_area))
-        embedded_dict['opponent_location_area'] = F.relu(self.feature_embedding['opponent_location'](opponent_location_area))
-        for key in input_dict.keys():            
+        embedded_dict['time_diff'] = F.relu(self.feature_embedding['time_diff'](time_diff))
+        embedded_dict['shot_angle'] = F.relu(self.feature_embedding['shot_angle'](shot_angle))
+        embedded_dict['distance'] = F.relu(self.feature_embedding['distance'](distance))
+        for key in input_dict.keys():          
+
             if key == 'landing_x' or key == 'landing_y' or\
-               key == 'player_location_x' or key == 'player_location_y' or\
-               key == 'player_location_area' or key == 'opponent_location_area' or\
-               key == 'opponent_location_x' or key == 'opponent_location_y':
+               key == 'time_diff' or key == 'shot_angle' or\
+               key == 'distance' or key == 'area':
                 continue
-            embedded_dict[key] = self.feature_embedding[key](input_dict[key])
+            embedded_dict[key] = self.feature_embedding[key](input_dict[key].to(torch.int64))
         # embedded_player = self.player_embedding(input_player)
 
         h_a = embedded_dict['area']
