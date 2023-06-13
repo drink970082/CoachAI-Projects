@@ -56,14 +56,15 @@ def shotGen_trainer(data_loader, feature_name, encoder, decoder, criterion, enco
         encoder.train(), decoder.train()
         total_loss, total_shot_loss, total_area_loss = 0, 0, 0
         total_instance = 0
-
         for loader_idx, item in enumerate(data_loader):
             batch_input = dict()
-            for idx in range(16):
+
+            for idx in range(13):
                 batch_input[feature_name[idx]] = item[idx].to(device)
-            batch_target_shot, batch_target_x, batch_target_y, batch_target_player = item[16].to(device), item[17].to(
-                device), item[18].to(device), item[19].to(device)
-            seq_len, seq_sets = item[20].to(device), item[21].to(device)
+            idx = 12
+            batch_target_shot, batch_target_x, batch_target_y, batch_target_player = item[idx+1].to(device), item[idx+2].to(device), item[idx+3].to(device), item[idx+4].to(device)
+            
+            seq_len, seq_sets = item[idx+5].to(device), item[idx+6].to(device)
 
             """ original """
             # batch_input_shot, batch_input_x, batch_input_y, batch_input_player = item[0].to(device), item[1].to(device), item[2].to(device), item[3].to(device)
@@ -75,7 +76,7 @@ def shotGen_trainer(data_loader, feature_name, encoder, decoder, criterion, enco
             input_dict = dict()
             for key in batch_input:
                 input_dict[key] = batch_input[key][:, :encode_length]
-
+            
             """ original """
             # input_shot = batch_input_shot[:, :encode_length]
             # input_x = batch_input_x[:, :encode_length]
@@ -112,11 +113,12 @@ def shotGen_trainer(data_loader, feature_name, encoder, decoder, criterion, enco
             gold_xy = torch.cat((target_x.unsqueeze(-1), target_y.unsqueeze(-1)), dim=-1).to(device, dtype=torch.float)
 
             total_instance = total_instance + len(target_shot)
-
+            #print(output_shot_logits,target_shot)
             loss_shot = criterion['entropy'](output_shot_logits, target_shot.type(torch.LongTensor))
             loss_area = Gaussian2D_loss(output_xy, gold_xy)
-
+            
             loss = loss_shot + loss_area
+            # print(loss)
             loss.backward()
 
             encoder_optimizer.step()
@@ -142,29 +144,34 @@ def shotGen_trainer(data_loader, feature_name, encoder, decoder, criterion, enco
     return record_loss
 
 
-def shotgen_generator(given_seq, encoder, decoder, config, samples, device):
+def shotgen_generator(given_seq,feature_name, encoder, decoder, config, samples, device):
     encode_length = config['encode_length'] - 1
     encoder.eval(), decoder.eval()
     generated_shot_logits, generated_area_coordinates = [], []
-
     with torch.no_grad():
-        # encoding stage
-        input_shot = given_seq['given_shot'][:encode_length].unsqueeze(0)
-        input_x = given_seq['given_x'][:encode_length].unsqueeze(0)
-        input_y = given_seq['given_y'][:encode_length].unsqueeze(0)
-        input_player = given_seq['given_player'][:encode_length].unsqueeze(0)
+        # # encoding stage
+        # input_shot = given_seq['given_shot'][:encode_length].unsqueeze(0)
+        # input_x = given_seq['given_x'][:encode_length].unsqueeze(0)
+        # input_y = given_seq['given_y'][:encode_length].unsqueeze(0)
+        # input_player = given_seq['given_player'][:encode_length].unsqueeze(0)
+        
+        input_dict = dict()
+        for key in feature_name[:-3]:
+            input_dict[key] = given_seq[key][:encode_length].unsqueeze(0)
+        
 
-        encode_local_output, encode_global_A, encode_global_B = encoder(input_shot, input_x, input_y, input_player)
+        # encode_local_output, encode_global_A, encode_global_B = encoder(input_shot, input_x, input_y, input_player)
+        encode_local_output, encode_global_A, encode_global_B = encoder(input_dict)
 
         for sample_id in range(samples):
             current_generated_shot, current_generated_area = [], []
-            total_instance = len(given_seq['given_shot']) - len(given_seq['given_shot'][:encode_length])
+            total_instance = len(given_seq['type']) - len(given_seq['type'][:encode_length])
             for seq_idx in range(encode_length, given_seq['rally_length'] - 1):
                 if seq_idx == encode_length:
-                    input_shot = given_seq['given_shot'][seq_idx].unsqueeze(0).unsqueeze(0)
-                    input_x = given_seq['given_x'][seq_idx].unsqueeze(0).unsqueeze(0)
-                    input_y = given_seq['given_y'][seq_idx].unsqueeze(0).unsqueeze(0)
-                    input_player = given_seq['given_player'][seq_idx].unsqueeze(0).unsqueeze(0)
+                    input_shot = given_seq['type'][seq_idx].unsqueeze(0).unsqueeze(0)
+                    input_x = given_seq['landing_x'][seq_idx].unsqueeze(0).unsqueeze(0)
+                    input_y = given_seq['landing_y'][seq_idx].unsqueeze(0).unsqueeze(0)
+                    input_player = given_seq['player'][seq_idx].unsqueeze(0).unsqueeze(0)
                 else:
                     # use its own predictions as the next input
                     input_shot = torch.cat((input_shot, prev_shot), dim=-1)
@@ -173,7 +180,7 @@ def shotgen_generator(given_seq, encoder, decoder, config, samples, device):
                     input_player = torch.cat((input_player, prev_player), dim=-1)
                 target_player = given_seq['target_player'][seq_idx - encode_length].unsqueeze(0).unsqueeze(0)
 
-                output_xy, output_shot_logits = decoder(input_shot, input_x, input_y, input_player, encode_local_output,
+                output_xy, output_shot_logits = decoder(input_dict, encode_local_output,
                                                         encode_global_A, encode_global_B, target_player)
 
                 # sample area coordinates

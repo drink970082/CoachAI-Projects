@@ -11,7 +11,7 @@ def get_argument():
     opt.add_argument("--model_type",
                      type=str,
                      choices=['LSTM', 'CFLSTM', 'Transformer', 'DMA_Nets', 'ShuttleNet', 'ours_rm_taa', 'ours_p2r',
-                              'ours_r2p', 'DNRI'],
+                              'ours_r2p', 'DNI'],
                      required=True,
                      help="model type")
     opt.add_argument("--output_folder_name",
@@ -31,7 +31,7 @@ def get_argument():
                      help="given encode length")
     opt.add_argument("--batch_size",
                      type=int,
-                     default=32,
+                     default=8,
                      help="batch size")
     opt.add_argument("--lr",
                         type=int,
@@ -39,7 +39,7 @@ def get_argument():
                         help="learning rate")  #可改
     opt.add_argument("--epochs",
                         type=int,
-                        default=150,
+                        default=50,
                         help="epochs")  #可改
     opt.add_argument("--n_layers",
                      type=int,
@@ -47,7 +47,7 @@ def get_argument():
                      help="number of layers")
     opt.add_argument("--shot_dim",
                      type=int,
-                     default=32,
+                     default=8,
                      help="dimension of shot")
     opt.add_argument("--area_num",
                      type=int,
@@ -55,15 +55,15 @@ def get_argument():
                      help="mux, muy, sx, sy, corr")
     opt.add_argument("--area_dim",
                      type=int,
-                     default=32,
+                     default=8,
                      help="dimension of area")
     opt.add_argument("--player_dim",
                      type=int,
-                     default=32,
+                     default=8,
                      help="dimension of player")
     opt.add_argument("--encode_dim",
                      type=int,
-                     default=32,
+                     default=8,
                      help="dimension of hidden")
     opt.add_argument("--num_directions",
                      type=int,
@@ -101,6 +101,7 @@ if __name__ == "__main__":
     # Clean data and Prepare dataset
     config, train_dataloader, val_dataloader, test_dataloader, train_matches, val_matches, test_matches, feature_name = prepare_dataset(config)
     device = torch.device(f"cuda:{config['gpu_num']}" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cpu")
     print("Model path: {}".format(config['output_folder_name']))
     if not os.path.exists(config['output_folder_name']):
         os.makedirs(config['output_folder_name'])
